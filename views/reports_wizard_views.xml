@@ -1,0 +1,853 @@
+<odoo>
+<record id="view_reports_wizard_form" model="ir.ui.view">
+<field name="name">reports.wizard.form</field>
+<field name="model">reports.wizard</field>
+<field name="arch" type="xml">
+<form string="Reports Generator">
+<style> #report_loader_overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.55); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; } #report_loader_overlay.active { display: flex; } .report_spinner { width: 60px; height: 60px; border: 6px solid #ffffff44; border-top: 6px solid #ffffff; border-radius: 50%; animation: report_spin 0.9s linear infinite; margin-bottom: 18px; } @keyframes report_spin { to { transform: rotate(360deg); } } .report_loader_text { color: #ffffff; font-size: 18px; font-weight: 600; letter-spacing: 0.5px; } </style>
+<header>
+<button name="generate_report" string="Generate Report" type="object" class="oe_highlight"/>
+</header>
+<sheet>
+<div id="report_loader_overlay">
+<div class="report_spinner"/>
+<div class="report_loader_text">Generating Report, please wait...</div>
+</div>
+<div class="oe_title">
+<h1>Reports Generator</h1>
+<p>Select report type and configure parameters to generate reports</p>
+</div>
+<group string="Report Configuration">
+<field name="report_type" required="1"/>
+</group>
+<!--  Overview Report Fields  -->
+<group string="Overview Report Parameters" invisible="report_type != 'overview_report'">
+<group>
+<field name="from_date"/>
+<field name="to_date"/>
+</group>
+<group>
+<!--  <field name="customer_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="salesperson_id" options="{'no_create': True, 'no_edit': True}"/>
+</group>
+</group>
+<!--  Enquiry Report Fields  -->
+<group string="Enquiry Report Parameters" invisible="report_type != 'enquiry_report'">
+<group>
+<field name="enquiry_from_date"/>
+<field name="enquiry_to_date"/>
+<field name="enquiry_status"/>
+</group>
+<group>
+<!--  <field name="enquiry_customer_id" options="{'no_create': True, 'no_edit': True}" domain="[('is_company', '=', True), ('customer_rank', '&gt;', 0)]"/>  -->
+<field name="enquiry_customer_name" placeholder="Type customer name..."/>
+</group>
+</group>
+<!--  Quotation Report Fields  -->
+<group string="Quotation Report Parameters" invisible="report_type != 'quotation_report'">
+<group>
+<!--  <field name="quotation_number"/>  -->
+<field name="quotation_number_ids" widget="many2many_tags"/>
+<!--  <field name="enquiry_number"/>  -->
+<field name="enquiry_ids" widget="many2many_tags"/>
+<field name="quotation_customer_id" options="{'no_create': True, 'no_edit': True}"/>
+</group>
+<group>
+<field name="quotation_from_date"/>
+<field name="quotation_to_date"/>
+<field name="quotation_status"/>
+</group>
+</group>
+<group string="Workorder Summary Parameters" invisible="report_type != 'workorder_summary'">
+<group>
+<!--  <field name="workorder_number"/>
+                            <field name="workorder_quotation_number"/>
+                            <field name="workorder_enquiry_number"/>  -->
+<field name="workorder_number_ids" widget="many2many_tags"/>
+<field name="workorder_quotation_number_ids" widget="many2many_tags"/>
+<field name="workorder_enquiry_number_ids" widget="many2many_tags"/>
+</group>
+<group>
+<field name="workorder_from_date"/>
+<field name="workorder_to_date"/>
+<field name="workorder_customer_id" options="{'no_create': True, 'no_edit': True}"/>
+</group>
+</group>
+<group string="Consignee Separation Parameters" invisible="report_type != 'consignee_separation'">
+<group>
+<!--  <field name="consignee_workorder_number"/>
+                            <field name="consignee_enquiry_number"/>  -->
+<field name="consignee_separation_ids" widget="many2many_tags"/>
+<field name="consignee_customer_id" options="{'no_create': True, 'no_edit': True}"/>
+</group>
+<group>
+<field name="consignee_from_date"/>
+<field name="consignee_to_date"/>
+</group>
+</group>
+<group string="DC Report Parameters" invisible="report_type != 'dc_report'">
+<group>
+<!--  <field name="dc_number"/>
+                            <field name="dc_workorder_number"/>  -->
+<field name="dc_number_ids" widget="many2many_tags"/>
+<field name="dc_workorder_number_ids" widget="many2many_tags"/>
+<field name="dc_customer_id" options="{'no_create': True, 'no_edit': True}"/>
+</group>
+<group>
+<field name="dc_from_date"/>
+<field name="dc_to_date"/>
+</group>
+</group>
+<!--  Generated Report Section  -->
+<!--  <group string="Generated Report" invisible="not excel_file and not pdf_file">
+                        <field name="excel_file" filename="filename" readonly="1"/>  -->
+<!--  ADD: PDF download  -->
+<!--  <field name="pdf_file" filename="pdf_filename" 
+                            widget="binary" 
+                            invisible="not pdf_file"
+                            string="Download PDF"/>
+                        <field name="pdf_filename" invisible="1"/>
+                        <field name="filename" invisible="1"/>
+                        <field name="preview_count" readonly="1" string="Preview Records Count"/>
+                    </group>  -->
+<group string="Generated Report" invisible="not excel_file">
+<field name="excel_file" filename="filename" readonly="1" invisible="not excel_file" string="Excel File"/>
+<field name="pdf_filename" invisible="1"/>
+<field name="filename" invisible="1"/>
+<!-- <field name="preview_count" readonly="1" string="Preview Records Count"/> -->
+</group>
+<!-- Product Summary Report fields -->
+    <group string="Product Summary Parameters" invisible="report_type != 'product_summary'">
+        <group>
+            <field name="product_summary_name" options="{'no_create': True, 'no_edit': True}"/>
+            <field name="product_summary_category_id" options="{'no_create': True, 'no_edit': True}"/>
+        </group>
+        <group>
+            <field name="product_summary_product_type"/>
+        </group>
+    </group>
+<!--  Item Summary Report fields  -->
+<group name="item_summary_group" string="Item Summary Report" invisible="report_type != 'item_summary'">
+<group>
+<field name="item_summary_from_date" invisible="report_type != 'item_summary'"/>
+<field name="item_summary_to_date" invisible="report_type != 'item_summary'"/>
+<!--  <field name="item_name" placeholder="Search by item name..." invisible="report_type != 'item_summary'"/>  -->
+</group>
+</group>
+<!--  Stock Summary Report filters  -->
+<group string="Stock Summary Report" invisible="report_type != 'stock_summary_report'">
+</group>
+<!--  Serial Number Tracking filters  -->
+<group string="Serial Number Tracking Parameters" invisible="report_type != 'serial_number_tracking'">
+<group>
+<field name="serial_from_date"/>
+<field name="serial_to_date"/>
+</group>
+<group>
+<!--  <field name="serial_product_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="serial_product_ids" widget="many2many_tags"/>
+</group>
+</group>
+<!--  DC Movement Report filters  -->
+<group string="DC Movement Report Parameters" invisible="report_type != 'dc_movement_report'">
+<group>
+<field name="dc_movement_from_date"/>
+<field name="dc_movement_to_date"/>
+<!--  <field name="dc_movement_dc_number" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="dc_movement_dc_number_ids" widget="many2many_tags"/>
+</group>
+<group>
+<field name="dc_movement_customer_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="dc_movement_warehouse_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="dc_movement_status"/>
+</group>
+</group>
+<!--  Task Allocation Report filters  -->
+<group string="Task Allocation Report Parameters" invisible="report_type != 'task_allocation_report'">
+<group>
+<field name="task_from_date"/>
+<field name="task_to_date"/>
+</group>
+<group>
+<field name="task_project_id"/>
+<!--  <field name="task_stage_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="task_employee_id"/>
+</group>
+</group>
+<!--  Courier Report filters  -->
+<group string="Courier Report Parameters" invisible="report_type != 'courier'">
+<group>
+<field name="courier_from_date"/>
+<field name="courier_to_date"/>
+</group>
+<group>
+<!--  <field name="courier_partner_filter_id" options="{'no_create': True, 'no_edit': True}" domain="[]"/>  -->
+<field name="courier_order_type"/>
+</group>
+</group>
+<!--  Installation Summary Report filters  -->
+<group string="Installation Summary Parameters" invisible="report_type != 'installation_summary'">
+<group>
+<field name="installation_from_date"/>
+<field name="installation_to_date"/>
+</group>
+<group>
+<field name="installation_project_ids" widget="many2many_tags"/>
+<!--  <field name="installation_project_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<!--  <field name="installation_customer_id_filter" options="{'no_create': True, 'no_edit': True}"/>  -->
+</group>
+</group>
+<!--  Delivery Booking Summary Report filters  -->
+<group string="Delivery Booking Summary Parameters" invisible="report_type != 'delivery_booking_summary_report'">
+<group>
+<field name="delivery_booking_from_date"/>
+<field name="delivery_booking_to_date"/>
+</group>
+<group>
+<!--  <field name="delivery_booking_customer_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="delivery_booking_dispatch_type"/>
+<field name="delivery_booking_status"/>
+</group>
+</group>
+<!-- Delivered/Undelivered Summary Parameters -->
+<group string="Delivered/Undelivered Summary Parameters" invisible="report_type != 'delivered_undelivered_summary'">
+<group>
+<field name="du_workorder_ids" widget="many2many_tags" options="{'no_create': True, 'no_edit': True}"/>
+<field name="du_customer_id" options="{'no_create': True, 'no_edit': True}"/>
+</group>
+<group>
+<field name="du_from_date"/>
+<field name="du_to_date"/>
+</group>
+</group>
+<!--  DC Print Report filters  -->
+<group string="DC Print Report Parameters" invisible="report_type != 'dc_print_report'">
+<group>
+<!--  <field name="dc_print_dc_number" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="dc_print_dc_number_ids" widget="many2many_tags"/>
+<field name="dc_print_from_date"/>
+<field name="dc_print_to_date"/>
+</group>
+<group>
+<!--  <field name="dc_print_customer_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="dc_print_warehouse_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="dc_print_state"/>
+<field name="print_download_type"/>
+</group>
+</group>
+<!--  Purchase Order Report filters  -->
+<group string="Purchase Order Report Parameters" invisible="report_type != 'purchase_order_report'">
+<group>
+<!--  <field name="purchase_order_number"/>  -->
+<field name="purchase_order_from_date"/>
+<field name="purchase_order_to_date"/>
+</group>
+<group>
+<!--  <field name="purchase_order_vendor_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<!--  <field name="purchase_order_salesperson_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<!--  <field name="purchase_order_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="purchase_order_ids" widget="many2many_tags" options="{'no_create': True, 'no_edit': True}"/>
+<field name="purchase_order_status"/>
+</group>
+</group>
+<!--  PO Print Report filters  -->
+<group string="PO Print Report Parameters" invisible="report_type != 'po_print_report'">
+<group>
+<!--  <field name="po_print_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="po_print_ids" widget="many2many_tags"/>
+<field name="po_print_from_date"/>
+<field name="po_print_to_date"/>
+</group>
+<group>
+<field name="po_print_vendor_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="po_print_status"/>
+<field name="print_download_type"/>
+</group>
+</group>
+<!--  Purchase Indent Report filters  -->
+<group string="Purchase Indent Report Parameters" invisible="report_type != 'purchase_indent_report'">
+<group>
+<!--  <field name="purchase_indent_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="purchase_indent_ids" widget="many2many_tags" options="{'no_create': True, 'no_edit': True}"/>
+<field name="purchase_indent_from_date"/>
+<field name="purchase_indent_to_date"/>
+</group>
+<group>
+<field name="purchase_indent_vendor_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="purchase_indent_order_type"/>
+<field name="purchase_indent_status"/>
+</group>
+</group>
+<!--  Invoice Summary Report filters  -->
+<group string="Invoice Summary Report Parameters" invisible="report_type != 'invoice_summary_report'">
+<group>
+<!--  <field name="invoice_summary_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="invoice_summary_ids" widget="many2many_tags"/>
+<field name="invoice_summary_from_date"/>
+<field name="invoice_summary_to_date"/>
+</group>
+<group>
+<field name="invoice_summary_customer_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="invoice_summary_invoice_type"/>
+<field name="invoice_summary_status"/>
+</group>
+</group>
+<!--  Invoice Print Report filters  -->
+<group string="Invoice Print Report Parameters" invisible="report_type != 'invoice_print_report'">
+<group>
+<field name="invoice_print_from_date"/>
+<field name="invoice_print_to_date"/>
+</group>
+<group>
+<!--  <field name="invoice_print_customer_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<!--  <field name="invoice_print_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="invoice_print_ids" widget="many2many_tags"/>
+<field name="invoice_print_status"/>
+<field name="print_download_type"/>
+</group>
+</group>
+<!--  Quotation Print Report filters  -->
+<group string="Quotation Print Report Parameters" invisible="report_type != 'quotation_print_report'">
+<group>
+<field name="quotation_print_from_date"/>
+<field name="quotation_print_to_date"/>
+</group>
+<group>
+<!--  <field name="quotation_print_customer_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<!--  <field name="quotation_print_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="quotation_print_ids" widget="many2many_tags"/>
+<field name="quotation_print_status"/>
+<field name="print_download_type"/>
+</group>
+</group>
+<!--  Installation Print Report Filters  -->
+<group string="Installation Print Report Parameters" invisible="report_type != 'installation_print_report'">
+<group>
+<field name="installation_print_from_date"/>
+<field name="installation_print_to_date"/>
+<!--  <field name="installation_print_customer_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+</group>
+<group>
+<!--  <field name="installation_print_project_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="installation_print_project_ids" widget="many2many_tags"/>
+<!--  <field name="installation_print_task_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<field name="installation_print_task_ids" widget="many2many_tags"/>
+<!--  <field name="installation_print_stage_id" options="{'no_create': True, 'no_edit': True}"/>  -->
+<!--  <field name="installation_print_state"/>  -->
+<field name="print_download_type"/>
+</group>
+</group>
+<!--  ELCOT Print Report Filters  -->
+<group string="ELCOT Print Report Parameters" invisible="report_type != 'elcot_print_report'">
+<group>
+<field name="elcot_print_from_date"/>
+<field name="elcot_print_to_date"/>
+<field name="elcot_print_state"/>
+</group>
+<group>
+<field name="elcot_print_customer_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="elcot_print_project_ids" widget="many2many_tags"/>
+<field name="elcot_print_task_ids" widget="many2many_tags"/>
+<field name="print_download_type"/>
+</group>
+</group>
+<!--  UPDATED: Print Label Report Section with Bulk Import  -->
+<group string="Print Label Settings" invisible="report_type != 'print_label'">
+<!--  NEW: Bulk Import Section - All in one beautiful line  -->
+<group colspan="2" col="12" string="Option 1: Bulk Import from File">
+<div class="o_row" colspan="12" style="width: 100%; display: flex; align-items: center; gap: 15px;">
+<button name="download_bulk_import_template" string="Download Template" type="object" class="btn-primary" icon="fa-download"/>
+<button name="import_bulk_dc_data" string="Import Bulk Data" type="object" class="btn-success" icon="fa-upload" invisible="not bulk_import_file"/>
+<field name="bulk_import_file" filename="bulk_import_filename" nolabel="1" placeholder="Choose file..." style="flex: 1; min-width: 300px;"/>
+<field name="bulk_import_filename" invisible="1"/>
+</div>
+</group>
+<separator string="OR" colspan="2"/>
+<!--  Option 2: Manual Selection  -->
+<group string="Option 2: Manual Selection" colspan="2">
+<field name="print_label_warehouse_id" options="{'no_create': True, 'no_edit': True}" placeholder="Select Warehouse..."/>
+<field name="print_label_dc_ids" widget="many2many_tags" placeholder="Select DC numbers..." options="{'no_create': True, 'no_open': True}"/>
+</group>
+<!--  DC Label Lines table (rest remains same)  -->
+<!--  DC Label Lines (shown after either import or manual selection)  -->
+<group string="Set Label Count for Each DC" colspan="2" invisible="not print_label_line_ids">
+<field name="print_label_line_ids" nolabel="1" colspan="2">
+<tree editable="bottom" create="false" delete="true">
+<field name="dc_number" readonly="1" string="DC Number"/>
+<field name="customer_name" readonly="1" string="Customer"/>
+<field name="scheduled_date" readonly="1" string="Scheduled Date" widget="date"/>
+<field name="label_count" string="Label Count"/>
+<field name="dc_id" invisible="1"/>
+</tree>
+</field>
+</group>
+</group>
+<!--  Report Preview Section with Separate Item and Product Columns  -->
+<notebook invisible="not preview_ids">
+<page string="Report Preview">
+<!--  Overview Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'overview_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="enquiry_number" string="Enquiry Number"/>
+<field name="enquiry_date" string="Enquiry Date"/>
+<field name="lead_number" string="Lead Number"/>
+<field name="lead_sales_person" string="Salesperson"/>
+<field name="lead_customer_name" string="Customer"/>
+<field name="quotation_number" string="Quotation Number"/>
+<field name="sale_order_number" string="Sale Order Number"/>
+<field name="customer_po_number" string="Customer PO Number"/>
+<field name="overview_item_names" string="Item Name"/>
+<field name="overview_item_descriptions" string="Item Description"/>
+<field name="overview_item_quantities" string="Item Quantity"/>
+<field name="consignee_numbers" string="Consignee Numbers"/>
+<field name="dc_numbers" string="DC Numbers"/>
+<field name="overview_dc_quantity" string="DC Quantity"/>
+</tree>
+</field>
+<!--  Enquiry Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'enquiry_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="customer_name" string="Customer Name"/>
+<field name="status" string="Status"/>
+<field name="contact_person" string="Contact Person"/>
+<field name="phone_number" string="Phone Number"/>
+<field name="email" string="Email"/>
+<field name="gst_number" string="GST Number"/>
+<field name="address_full" string="Address Full"/>
+<field name="sales_person" string="Sales Person"/>
+</tree>
+</field>
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'workorder_summary'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="workorder_number" string="WorkOrder No"/>
+<field name="workorder_customer" string="Customer"/>
+<field name="workorder_customer_po_number" string="Customer PO Number"/>
+<field name="workorder_po_issue_date" string="PO Issue Date"/>
+<field name="workorder_contact_person" string="Contact Person"/>
+<field name="workorder_source_quotation" string="Source Quotation"/>
+<field name="workorder_order_type" string="Order Type"/>
+<field name="workorder_gst_treatment" string="GST Treatment"/>
+<field name="workorder_created_date" string="Created Date"/>
+<field name="workorder_item_name" string="Item Name"/>
+<field name="workorder_individual_price" string="Individual Price"/>
+<field name="workorder_hsn_code" string="HSN Code"/>
+<field name="workorder_quotation_quantity" string="Quotation Qty"/>
+<field name="workorder_tax_amount" string="Tax Amount"/>
+<field name="workorder_total_amount" string="Total Amount"/>
+</tree>
+</field>
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'consignee_separation'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="consignee_number" string="Consignee No"/>
+<field name="consignee_location_address" string="Consignee Address"/>
+<field name="consignee_location_code" string="Location Code"/>
+<field name="consignee_customer_address" string="Customer with Address"/>
+<field name="consignee_contact_person" string="Contact Person"/>
+<field name="consignee_workorder_date" string="Workorder Date"/>
+<field name="consignee_customer_po_number" string="Customer PO Number"/>
+<field name="consignee_po_issue_date" string="PO Issue Date"/>
+<field name="consignee_item_name" string="Item Name"/>
+<field name="consignee_individual_price" string="Individual Price"/>
+<field name="consignee_hsn_code" string="HSN Code"/>
+<field name="consignee_quotation_quantity" string="Quotation Qty"/>
+<field name="consignee_tax_amount" string="Tax Amount"/>
+<field name="consignee_total_amount" string="Total Amount"/>
+</tree>
+</field>
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'dc_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="dc_number" string="DC Number"/>
+<field name="dc_delivery_address" string="Delivery Address"/>
+<field name="dc_district" string="District"/>
+<field name="dc_state" string="State"/>
+<field name="dc_warehouse_location" string="Warehouse Location"/>
+<field name="dc_courier_direct" string="Courier/Direct"/>
+<field name="workorder_number" string="WorkOrder Number"/>
+<field name="dc_customer_po_number" string="Customer PO Number"/>
+<field name="dc_po_issue_date" string="PO Issue Date"/>
+<field name="dc_item_name" string="Item Name"/>
+<field name="dc_individual_price" string="Individual Price"/>
+<field name="dc_hsn_code" string="HSN Code"/>
+<field name="dc_quotation_quantity" string="Quotation Qty"/>
+<field name="dc_tax_amount" string="Tax Amount"/>
+<field name="dc_total_amount" string="Total Amount"/>
+<field name="dc_product_name" string="Product Name"/>
+<field name="dc_serial_number" string="Serial Number"/>
+</tree>
+</field>
+<!--  Quotation Report Tree with Separate Item and Product Columns  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'quotation_report'">
+<tree create="false" delete="false" edit="false" limit="50" string="Quotation Report Preview">
+<!--  Common Fields  -->
+<field name="quotation_number_field" string="Quotation #"/>
+<field name="quotation_status" string="Status"/>
+<field name="quotation_customer" string="Customer"/>
+<!--  ITEM COLUMNS (repeated data)  -->
+<field name="item_name" string="Item Name"/>
+<field name="item_quantity" string="Item Qty"/>
+<field name="item_unit_price" string="Item Unit Price"/>
+<field name="item_tax_amount" string="Item Tax"/>
+<field name="item_total_amount" string="Item Total"/>
+<!--  PRODUCT COLUMNS (individual data)  -->
+<field name="product_name" string="Product Name"/>
+<field name="product_quantity" string="Product Qty"/>
+<field name="product_unit_price" string="Product Unit Price"/>
+<field name="product_tax_amount" string="Product Tax"/>
+<field name="product_total_amount" string="Product Total"/>
+<field name="product_margin_percentage" string="Product Margin %"/>
+<field name="product_margin_amount" string="Product Margin Amount"/>
+<!--  Additional Fields  -->
+<field name="contact_person_name" string="Contact Person"/>
+<field name="quotation_date_field" string="Quote Date"/>
+</tree>
+</field>
+<!--  Item Summary Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'item_summary'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="item_summary_name" string="Item Name"/>
+<field name="item_summary_code" string="Item Code"/>
+<field name="item_summary_category" string="Category"/>
+<!--  <field name="item_summary_sales_price" string="Sales Price"/>  -->
+<!--  <field name="item_summary_cost_price" string="Cost Price"/>  -->
+<!--  <field name="item_summary_current_stock" string="Current Stock"/>  -->
+<!--  <field name="item_summary_unit_of_measure" string="UOM"/>  -->
+<field name="item_summary_hsn_code" string="HSN Code"/>
+<!--  <field name="item_summary_supplier" string="Main Supplier"/>  -->
+<!--  <field name="item_summary_location" string="Stock Location"/>  -->
+</tree>
+</field>
+<!--  Delivered/Undelivered Summary Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'delivered_undelivered_summary'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="du_workorder_no" string="Workorder No"/>
+<field name="du_customer" string="Customer"/>
+<field name="du_customer_po_number" string="Customer PO Number"/>
+<field name="du_po_issue_date" string="PO Issue Date"/>
+<field name="du_order_type" string="Order Type"/>
+<field name="du_salesperson" string="Salesperson"/>
+<field name="du_submitted_to_customer" string="Invoice Submitted to Customer"/>
+<field name="du_submitted_date" string="Submitted Date"/>
+<field name="du_item_name" string="Item Name"/>
+<field name="du_workorder_qty" string="Workorder Qty"/>
+<field name="du_unit_price" string="Unit Price"/>
+<field name="du_total_amount" string="Total Amount"/>
+<field name="du_delivered_qty" string="Delivered Qty"/>
+<field name="du_delivered_amount" string="Delivered Amount"/>
+<field name="du_undelivered_qty" string="Undelivered Qty"/>
+<field name="du_undelivered_amount" string="Undelivered Amount"/>
+<field name="du_inst_completed_qty" string="Installation Completed Qty"/>
+<field name="du_inst_completed_value" string="Installation Completed Value"/>
+<field name="du_inst_incomplete_qty" string="Installation Incomplete Qty"/>
+<field name="du_inst_incomplete_value" string="Installation Incomplete Value"/>
+</tree>
+</field>
+<!--  Task Allocation Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'task_allocation_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="task_name" string="Task Name"/>
+<field name="task_project" string="Project Name"/>
+<field name="task_assigned_employee" string="Assigned Employee"/>
+<!--  <field name="task_status" string="Status"/>  -->
+<field name="task_workorder_number" string="Workorder Number"/>
+<field name="task_customer_po_number" string="Customer PO Number"/>
+<field name="task_po_issue_date" string="PO Issue Date"/>
+<field name="task_customer" string="Customer"/>
+<!--  <field name="task_hours_logged" string="Hours Logged"/>  -->
+</tree>
+</field>
+<!--  Installation Summary Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'installation_summary'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="inst_task_name" string="Task Name"/>
+<field name="inst_project_name" string="Project Name"/>
+<field name="inst_customer" string="Customer"/>
+<field name="inst_workorder_number" string="Workorder Number"/>
+<field name="inst_customer_po_number" string="Customer PO Number"/>
+<field name="inst_po_issue_date" string="PO Issue Date"/>
+<field name="inst_assigned_employee" string="Assigned Employee"/>
+<field name="inst_deadline" string="Deadline"/>
+<!--  <field name="inst_hours_logged" string="Hours Logged"/>  -->
+</tree>
+</field>
+<!--  Stock Summary Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'stock_summary_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="stock_product_name" string="Product Name"/>
+<field name="stock_internal_ref" string="Internal Reference"/>
+<field name="stock_category" string="Category"/>
+<field name="stock_part_number_type" string="Part Number Type"/>
+<field name="stock_part_number" string="Part Number"/>
+<field name="stock_cost_price" string="Cost Price"/>
+<field name="stock_qty_on_hand" string="Qty On Hand"/>
+<field name="stock_total_price" string="Total Price"/>
+</tree>
+</field>
+<!--  Serial Number Tracking Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'serial_number_tracking'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="serial_lot_number" string="Lot/Serial Number"/>
+<field name="serial_workorder" string="Workorder"/>
+<field name="serial_product" string="Product"/>
+<field name="serial_created_date" string="Created Date"/>
+</tree>
+</field>
+<!--  DC Movement Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'dc_movement_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="dc_movement_dc_number_val" string="DC Number"/>
+<field name="dc_movement_reference" string="Reference"/>
+<field name="dc_movement_warehouse" string="Warehouse"/>
+<field name="dc_movement_created_date" string="Created Date"/>
+<field name="dc_movement_customer" string="Customer"/>
+<field name="dc_movement_source_document" string="Source Document"/>
+<field name="dc_movement_status" string="Status"/>
+</tree>
+</field>
+<!--  Courier Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'courier'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="courier_dc_number" string="DC Number"/>
+<field name="courier_sale_number" string="Sale Number"/>
+<field name="courier_order_type_val" string="Order Type"/>
+<field name="courier_customer" string="Customer"/>
+<field name="courier_customer_po_number" string="Customer PO Number"/>
+<field name="courier_po_issue_date" string="PO Issue Date"/>
+<field name="courier_booking_date_field" string="Courier Booking Date"/>
+<field name="courier_booking_date_val" string="Delivery Booking Date"/>
+<field name="courier_dc_date" string="DC Date"/>
+<field name="courier_partner_name" string="Courier Name"/>
+<field name="courier_booking_number" string="Courier Booking Number"/>
+</tree>
+</field>
+<!--  Delivery Booking Summary Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'delivery_booking_summary_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="db_booking_number" string="Booking Number"/>
+<field name="db_dc_number" string="DC Number"/>
+<field name="db_sale_number" string="Sale Number"/>
+<field name="db_customer_po_number" string="Customer PO Number"/>
+<field name="db_po_issue_date" string="PO Issue Date"/>
+<field name="db_dispatch_location" string="Dispatch Location"/>
+<field name="db_customer" string="Customer Name"/>
+<field name="db_billing_address" string="Billing Address"/>
+<field name="db_shipping_address" string="Shipping Address"/>
+<field name="db_contact_person" string="Contact Person"/>
+<field name="db_contact_no" string="Contact No"/>
+<field name="db_booking_date" string="Booking Date"/>
+<field name="db_dispatch_type" string="Dispatch Type"/>
+<field name="db_surface" string="Surface"/>
+<field name="db_driver_name" string="Driver Name"/>
+<field name="db_vehicle_number" string="Vehicle Number"/>
+<field name="db_status" string="Status"/>
+<field name="db_item_details" string="Item Details"/>
+<field name="db_item_qty" string="Item Qty"/>
+<field name="db_dc_value" string="DC Value"/>
+<field name="db_invoice_no" string="Invoice No"/>
+</tree>
+</field>
+<!--  Purchase Order Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'purchase_order_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="po_number" string="PO Number"/>
+<field name="po_vendor" string="Vendor"/>
+<field name="po_salesperson" string="Salesperson"/>
+<field name="po_created_date" string="Created Date"/>
+<field name="po_expected_arrival" string="Expected Arrival"/>
+<field name="po_status" string="Status"/>
+<field name="po_purchase_indent" string="Purchase Indent"/>
+<field name="po_work_order_no" string="Work Order No"/>
+<field name="po_customer_po_number" string="Customer PO Number"/>
+<field name="po_po_issue_date" string="PO Issue Date"/>
+<field name="po_purchase_person" string="Purchase Person"/>
+<field name="po_product" string="Product"/>
+<field name="po_qty_ordered" string="Qty Ordered"/>
+<field name="po_qty_received" string="Qty Received"/>
+<field name="po_unit_price" string="Unit Price"/>
+<field name="po_subtotal" string="Subtotal"/>
+<field name="po_total" string="Total"/>
+</tree>
+</field>
+<!--  Purchase Indent Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'purchase_indent_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="pi_indent_no" string="Indent No"/>
+<field name="pi_indent_date" string="Indent Date"/>
+<field name="pi_order_type" string="Order Type"/>
+<field name="pi_sale_order" string="Sale Order"/>
+<field name="pi_approved_date" string="Approved Date"/>
+<field name="pi_vendor" string="Vendor"/>
+<field name="pi_status" string="Status"/>
+<field name="pi_product" string="Product"/>
+<field name="pi_part_number" string="Part Number"/>
+<field name="pi_qty" string="Qty"/>
+<field name="pi_price" string="Price"/>
+<field name="pi_uom" string="UOM"/>
+</tree>
+</field>
+
+<!-- Product Summary Report Tree -->
+    <field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'product_summary'">
+        <tree create="false" delete="false" edit="false" limit="50">
+            <field name="ps_name" string="Product Name"/>
+            <field name="ps_internal_ref" string="Internal Ref"/>
+            <field name="ps_category" string="Category"/>
+            <field name="ps_product_type" string="Type"/>
+            <field name="ps_part_number_type" string="Part Number Type"/>
+            <field name="ps_part_number" string="Part Number"/>
+            <field name="ps_cost_price" string="Cost Price"/>
+            <field name="ps_hsn_code" string="HSN Code"/>
+            <field name="ps_qty_on_hand" string="Qty On Hand"/>
+        </tree>
+    </field>
+<!--  Invoice Summary Report Tree  -->
+<field name="preview_ids" nolabel="1" readonly="1" invisible="report_type != 'invoice_summary_report'">
+<tree create="false" delete="false" edit="false" limit="50">
+<field name="inv_number" string="Invoice Number"/>
+<field name="inv_customer" string="Customer"/>
+<field name="inv_date" string="Invoice Date"/>
+<field name="inv_due_date" string="Due Date"/>
+<field name="inv_dc_number" string="DC Number"/>
+<field name="inv_work_order" string="Work Order"/>
+<field name="inv_po_number" string="Customer PO Number"/>
+<field name="inv_po_issue_date" string="PO Issue Date"/>
+<field name="inv_invoice_type" string="Invoice Type"/>
+<field name="inv_status" string="Status"/>
+<field name="inv_item" string="Item"/>
+<field name="inv_item_name" string="Item Name"/>
+<field name="inv_qty" string="Quantity"/>
+<field name="inv_taxes" string="Taxes"/>
+<field name="inv_subtotal" string="Subtotal"/>
+</tree>
+</field>
+</page>
+</notebook>
+</sheet>
+</form>
+</field>
+</record>
+<!--  Action  -->
+<record id="action_reports_wizard" model="ir.actions.act_window">
+<field name="name">Reports Generator</field>
+<field name="res_model">reports.wizard</field>
+<field name="view_mode">form</field>
+<field name="target">current</field>
+<field name="view_id" ref="view_reports_wizard_form"/>
+</record>
+<!--  Menu  -->
+<menuitem id="menu_reports_main_menu" name="Reports" parent="comprehensive_dashboard_menu" action="action_reports_wizard" sequence="20"/>
+
+<!--  Print Reports Form View  -->
+<record id="view_print_reports_wizard_form" model="ir.ui.view">
+<field name="name">print.reports.wizard.form</field>
+<field name="model">reports.wizard</field>
+<field name="arch" type="xml">
+<form string="Print Reports Generator">
+<style> #report_loader_overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.55); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; } #report_loader_overlay.active { display: flex; } .report_spinner { width: 60px; height: 60px; border: 6px solid #ffffff44; border-top: 6px solid #ffffff; border-radius: 50%; animation: report_spin 0.9s linear infinite; margin-bottom: 18px; } @keyframes report_spin { to { transform: rotate(360deg); } } .report_loader_text { color: #ffffff; font-size: 18px; font-weight: 600; letter-spacing: 0.5px; } </style>
+<header>
+<button name="generate_report" string="Generate Report" type="object" class="oe_highlight"/>
+</header>
+<sheet>
+<div id="report_loader_overlay">
+<div class="report_spinner"/>
+<div class="report_loader_text">Generating Report, please wait...</div>
+</div>
+<div class="oe_title">
+<h1>Print Reports Generator</h1>
+<p>Select print report type and configure parameters to generate reports</p>
+</div>
+<field name="report_type" invisible="1"/>
+<group string="Report Configuration">
+<field name="print_report_type" required="1"/>
+</group>
+<!--  DC Print Report filters  -->
+<group string="DC Print Report Parameters" invisible="print_report_type != 'dc_print_report'">
+<group>
+<field name="dc_print_dc_number_ids" widget="many2many_tags"/>
+<field name="dc_print_from_date"/>
+<field name="dc_print_to_date"/>
+</group>
+<group>
+<field name="dc_print_warehouse_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="dc_print_state"/>
+</group>
+</group>
+<!--  PO Print Report filters  -->
+<group string="PO Print Report Parameters" invisible="print_report_type != 'po_print_report'">
+<group>
+<field name="po_print_ids" widget="many2many_tags"/>
+<field name="po_print_from_date"/>
+<field name="po_print_to_date"/>
+</group>
+<group>
+<field name="po_print_vendor_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="po_print_status"/>
+</group>
+</group>
+<!--  Invoice Print Report filters  -->
+<group string="Invoice Print Report Parameters" invisible="print_report_type != 'invoice_print_report'">
+<group>
+<field name="invoice_print_from_date"/>
+<field name="invoice_print_to_date"/>
+</group>
+<group>
+<field name="invoice_print_ids" widget="many2many_tags"/>
+<field name="invoice_print_status"/>
+</group>
+</group>
+<!--  Quotation Print Report filters  -->
+<group string="Quotation Print Report Parameters" invisible="print_report_type != 'quotation_print_report'">
+<group>
+<field name="quotation_print_from_date"/>
+<field name="quotation_print_to_date"/>
+</group>
+<group>
+<field name="quotation_print_ids" widget="many2many_tags"/>
+<field name="quotation_print_status"/>
+</group>
+</group>
+<!--  Installation Print Report Filters  -->
+<group string="Installation Print Report Parameters" invisible="print_report_type != 'installation_print_report'">
+<group>
+<field name="installation_print_from_date"/>
+<field name="installation_print_to_date"/>
+</group>
+<group>
+<field name="installation_print_project_ids" widget="many2many_tags"/>
+<field name="installation_print_task_ids" widget="many2many_tags"/>
+</group>
+</group>
+<!--  ELCOT Print Report Filters  -->
+<group string="ELCOT Print Report Parameters" invisible="print_report_type != 'elcot_print_report'">
+<group>
+<field name="elcot_print_from_date"/>
+<field name="elcot_print_to_date"/>
+<field name="elcot_print_state"/>
+</group>
+<group>
+<field name="elcot_print_customer_id" options="{'no_create': True, 'no_edit': True}"/>
+<field name="elcot_print_project_ids" widget="many2many_tags"/>
+<field name="elcot_print_task_ids" widget="many2many_tags"/>
+</group>
+</group>
+<!--  Download Options (shared for all print reports)  -->
+<group string="Download Options" invisible="not print_report_type">
+<field name="print_download_type" required="1"/>
+</group>
+</sheet>
+</form>
+</field>
+</record>
+
+<!--  Print Reports Action  -->
+<record id="action_print_reports_wizard" model="ir.actions.act_window">
+<field name="name">Print Reports Generator</field>
+<field name="res_model">reports.wizard</field>
+<field name="view_mode">form</field>
+<field name="target">current</field>
+<field name="view_id" ref="view_print_reports_wizard_form"/>
+<field name="context">{'default_print_report_type': 'quotation_print_report'}</field>
+</record>
+
+<!--  Print Reports Menu  -->
+<menuitem id="menu_print_reports_main_menu" name="Print Reports" parent="comprehensive_dashboard_menu" action="action_print_reports_wizard" sequence="25"/>
+</odoo>

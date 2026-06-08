@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_employee_broad_factor,access_hr_employee_broad_factor,model_hr_employee_broad_factor,base.group_user,1,0,0,0
+access_reports_wizard,access_reports_wizard,model_reports_wizard,base.group_user,1,1,1,1
+access_report_preview,access_report_preview,model_report_preview,base.group_user,1,1,1,1
+access_print_label_line_user,print.label.line.user,model_print_label_line,base.group_user,1,1,1,1
+access_reports_wizard_user,reports.wizard.user,model_reports_wizard,base.group_user,1,1,1,1
+access_report_preview_user,report.preview.user,model_report_preview,base.group_user,1,1,1,1
+access_erp_dashboard_user,access.erp.dashboard.user,model_erp_dashboard,base.group_user,1,1,1,1

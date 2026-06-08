@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Paper Format -->
+    <record id="print_label_paperformat" model="report.paperformat">
+        <field name="name">Print Label Format</field>
+        <field name="format">custom</field>
+        <field name="page_height">63</field>
+        <field name="page_width">95</field>
+        <field name="margin_top">2</field>
+        <field name="margin_bottom">2</field>
+        <field name="margin_left">2</field>
+        <field name="margin_right">2</field>
+        <field name="orientation">Portrait</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <!-- Report Action -->
+    <record id="action_report_print_label_multi" model="ir.actions.report">
+        <field name="name">Print Label (Multiple DC)</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hrms_dashboard.print_label_multi_template</field>
+        <field name="report_file">hrms_dashboard.print_label_multi_template</field>
+        <field name="paperformat_id" ref="print_label_paperformat"/>
+    </record>
+
+    <!-- Report Template -->
+    <template id="print_label_multi_template">
+        <t t-call="web.html_container">
+            <t t-set="label_data" t-value="docs._context.get('label_data', [])"/>
+            
+            <t t-if="label_data">
+                <!-- With count data -->
+                <t t-foreach="label_data" t-as="label_info">
+                    <t t-set="dc" t-value="env['stock.picking'].browse(label_info.get('dc_id'))"/>
+                    <t t-set="current" t-value="label_info.get('current_count', 1)"/>
+                    <t t-set="total_count" t-value="label_info.get('total_count', 1)"/>
+                    
+                    <div style="border:1px solid black; font-size:12px; padding:2px; page-break-after: always; width:100%; height:100%;">
+                        <table width="100%" style="border-collapse: collapse;">
+                            <tr>
+                                <td style="width:20%; vertical-align: top; border-right:1px solid black;">
+                                    <img t-if="dc.company_id.logo"
+                                         t-att-src="image_data_uri(dc.company_id.logo)"
+                                         style="height: 80px; width: 80px;" />
+                                </td>
+                                <td style="padding-left: 5px; font-size: 12px;">
+                                    <strong>THE ZIGMA TECHNOLOGIES INDIA (P) LIMITED</strong><br/>
+                                    <t t-set="selected_wh_id" t-value="docs._context.get('selected_warehouse_id', False)"/>
+                                    <t t-set="wh" t-value="env['stock.warehouse'].browse(selected_wh_id) if selected_wh_id else dc.picking_type_id.warehouse_id"/>
+
+                                    <!-- Priority 1: warehouse_address char field -->
+                                    <t t-if="wh and wh.warehouse_address">
+                                        <span t-esc="wh.warehouse_address"/><br/>
+                                    </t>
+
+                                    <!-- Priority 2: warehouse partner_id address -->
+                                    <t t-elif="wh and wh.partner_id and wh.partner_id.street">
+                                        <t t-if="wh.partner_id.street">
+                                            <span t-esc="wh.partner_id.street"/>,<br/>
+                                        </t>
+                                        <t t-if="wh.partner_id.street2">
+                                            <span t-esc="wh.partner_id.street2"/>,<br/>
+                                        </t>
+                                        <t t-if="wh.partner_id.city">
+                                            <span t-esc="wh.partner_id.city"/>
+                                        </t>
+                                        <t t-if="wh.partner_id.state_id">
+                                            , <span t-esc="wh.partner_id.state_id.name"/>
+                                        </t>
+                                        <t t-if="wh.partner_id.zip">
+                                            - <span t-esc="wh.partner_id.zip"/>
+                                        </t><br/>
+                                    </t>
+
+                                    <!-- Priority 3: hardcoded fallback address only -->
+                                    <t t-else="">
+                                        Vaidi Logi Tech Park, SIDCO Industrial Estate,<br/>
+                                        Thirumazhisai, Poonamallee, Tiruvallur, Chennai<br/>
+                                        Tamil Nadu - 600124.<br/>
+                                    </t>
+
+                                    <!-- Always hardcoded GSTIN, Customer Care, Email -->
+                                    GSTIN: 33AACCT0611K1ZQ<br/>
+                                    Customer Care : 9791933074/80/83,<br/>
+                                    support@zigmaindia.com
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td colspan="2" style="border-top:1px solid black; border-bottom:1px solid black; font-size: 12px;">
+                                    <table width="100%">
+                                        <tr>
+                                            <td style="font-size: 12px;"><strong>Ref:</strong> <span t-esc="dc.dc_number or dc.name"/></td>
+                                            <td style="text-align:right; font-size: 12px;">
+                                                <strong>Pcs:</strong> 
+                                                <span t-esc="current"/>/<span t-esc="total_count"/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td colspan="2" style="padding-top: 5px; font-size: 13px;">
+                                    <strong>To,</strong><br/>
+
+                                    <t t-set="consignee_company_name" t-value="dc.partner_id.parent_id.name if dc.partner_id.parent_id else dc.partner_id.name"/>
+                                    <span t-esc="consignee_company_name"/><br/>
+
+                                    <t t-if="dc.partner_id.street">
+                                        <span t-esc="dc.partner_id.street"/><br/>
+                                    </t>
+                                    <t t-if="dc.partner_id.street2">
+                                        <span t-esc="dc.partner_id.street2"/><br/>
+                                    </t>
+
+                                    <t t-if="dc.partner_id.city or dc.partner_id.state_id or dc.partner_id.zip">
+
+                                            <t t-if="dc.partner_id.city">
+                                                <span t-esc="dc.partner_id.city"/>
+                                            </t>
+                                            <t t-if="dc.partner_id.state_id">
+                                                <span t-esc="dc.partner_id.state_id.name"/>
+                                            </t>
+                                            <t t-if="dc.partner_id.zip">
+                                                <span t-esc="dc.partner_id.zip"/>
+                                            </t>
+                                        <br/>
+                                    </t>
+
+                                    <!-- <strong>GSTIN : </strong><span t-esc="dc.partner_id.vat or 'Unregistered'"/><br/> -->
+
+                                    <t t-set="consignee_contact" t-value="dc.partner_id if dc.partner_id.type == 'delivery' else (dc.partner_id.child_ids.filtered(lambda c: c.type == 'contact')[:1])"/>
+                                    <!-- <strong>Contact Person : </strong>
+                                    <t t-if="consignee_contact">
+                                        <span t-esc="consignee_contact.name or ''"/>
+                                    </t>
+                                    <br/>
+                                    <strong>Contact No : </strong>
+                                    <t t-if="consignee_contact and (consignee_contact.mobile or consignee_contact.phone)">
+                                        <span t-esc="consignee_contact.mobile or consignee_contact.phone"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span t-esc="dc.partner_id.mobile or dc.partner_id.phone or ''"/>
+                                    </t>
+                                    <br/> -->
+                                    <!-- <strong>Contact Person : </strong> -->
+                                    <t t-if="consignee_contact">
+                                    <strong>
+                                        <span t-esc="consignee_contact.name or ''"/>
+                                        <t t-if="consignee_contact and (consignee_contact.mobile or consignee_contact.phone)">
+                                            , <span t-esc="consignee_contact.mobile or consignee_contact.phone"/>
+                                        </t>
+                                        <t t-else="">
+                                            <t t-if="dc.partner_id.mobile or dc.partner_id.phone">
+                                                , <span t-esc="dc.partner_id.mobile or dc.partner_id.phone"/>
+                                            </t>
+                                        </t>
+                                        </strong>
+                                    </t>
+                                    <br/>
+
+
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </t>
+            </t>
+
+            <t t-if="not label_data">
+                <!-- Fallback: just print docs without counts -->
+                <t t-foreach="docs" t-as="dc">
+                    <div style="border:1px solid black; font-size:12px; padding:2px; page-break-after: always; width:100%; height:100%;">
+                        <table width="100%" style="border-collapse: collapse;">
+                            <tr>
+                                <td style="width:20%; vertical-align: top; border-right:1px solid black;">
+                                    <img t-if="dc.company_id.logo"
+                                         t-att-src="image_data_uri(dc.company_id.logo)"
+                                         style="height: 80px; width: 80px;" />
+                                </td>
+                                <td style="padding-left: 5px; font-size: 12px;">
+                                    <strong>THE ZIGMA TECHNOLOGIES INDIA (P) LIMITED</strong><br/>
+                                    <t t-set="selected_wh_id" t-value="docs._context.get('selected_warehouse_id', False)"/>
+                                    <t t-set="wh" t-value="env['stock.warehouse'].browse(selected_wh_id) if selected_wh_id else dc.picking_type_id.warehouse_id"/>
+
+                                    <!-- Priority 1: warehouse_address char field -->
+                                    <t t-if="wh and wh.warehouse_address">
+                                        <span t-esc="wh.warehouse_address"/><br/>
+                                    </t>
+
+                                    <!-- Priority 2: warehouse partner_id address -->
+                                    <t t-elif="wh and wh.partner_id and wh.partner_id.street">
+                                        <t t-if="wh.partner_id.street">
+                                            <span t-esc="wh.partner_id.street"/>,<br/>
+                                        </t>
+                                        <t t-if="wh.partner_id.street2">
+                                            <span t-esc="wh.partner_id.street2"/>,<br/>
+                                        </t>
+                                        <t t-if="wh.partner_id.city">
+                                            <span t-esc="wh.partner_id.city"/>
+                                        </t>
+                                        <t t-if="wh.partner_id.state_id">
+                                            , <span t-esc="wh.partner_id.state_id.name"/>
+                                        </t>
+                                        <t t-if="wh.partner_id.zip">
+                                            - <span t-esc="wh.partner_id.zip"/>
+                                        </t><br/>
+                                    </t>
+
+                                    <!-- Priority 3: hardcoded fallback address only -->
+                                    <t t-else="">
+                                        Vaidi Logi Tech Park, SIDCO Industrial Estate,<br/>
+                                        Thirumazhisai, Poonamallee, Tiruvallur, Chennai<br/>
+                                        Tamil Nadu - 600124.<br/>
+                                    </t>
+
+                                    <!-- Always hardcoded GSTIN, Customer Care, Email -->
+                                    GSTIN: 33AACCT0611K1ZQ<br/>
+                                    Customer Care : 9791933074/80/83,<br/>
+                                    support@zigmaindia.com
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td colspan="2" style="border-top:1px solid black; border-bottom:1px solid black; font-size: 12px;">
+                                    <table width="100%">
+                                        <tr>
+                                            <td style="font-size: 12px;"><strong>Ref:</strong> <span t-esc="dc.dc_number or dc.name"/></td>
+                                            <td style="text-align:right; font-size: 12px;">
+                                                <strong>Pcs:</strong> 1/1
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td colspan="2" style="padding-top: 5px; font-size: 13px;">
+                                    <strong>To,</strong><br/>
+
+                                    <t t-set="consignee_company_name" t-value="dc.partner_id.parent_id.name if dc.partner_id.parent_id else dc.partner_id.name"/>
+                                    <span t-esc="consignee_company_name"/><br/>
+
+                                    <t t-if="dc.partner_id.street">
+                                        <span t-esc="dc.partner_id.street"/><br/>
+                                    </t>
+                                    <t t-if="dc.partner_id.street2">
+                                        <span t-esc="dc.partner_id.street2"/><br/>
+                                    </t>
+
+                                    <t t-if="dc.partner_id.city or dc.partner_id.state_id or dc.partner_id.zip">
+
+                                            <t t-if="dc.partner_id.city">
+                                                <span t-esc="dc.partner_id.city"/>
+                                            </t>
+                                            <t t-if="dc.partner_id.state_id">
+                                                <span t-esc="dc.partner_id.state_id.name"/>
+                                            </t>
+                                            <t t-if="dc.partner_id.zip">
+                                                <span t-esc="dc.partner_id.zip"/>
+                                            </t>
+                                        <br/>
+                                    </t>
+
+                                    <!-- <strong>GSTIN : </strong><span t-esc="dc.partner_id.vat or 'Unregistered'"/><br/> -->
+
+                                    <t t-set="consignee_contact" t-value="dc.partner_id if dc.partner_id.type == 'delivery' else (dc.partner_id.child_ids.filtered(lambda c: c.type == 'contact')[:1])"/>
+                                    <!-- <strong>Contact Person : </strong>
+                                    <t t-if="consignee_contact">
+                                        <span t-esc="consignee_contact.name or ''"/>
+                                    </t>
+                                    <br/>
+                                    <strong>Contact No : </strong>
+                                    <t t-if="consignee_contact and (consignee_contact.mobile or consignee_contact.phone)">
+                                        <span t-esc="consignee_contact.mobile or consignee_contact.phone"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span t-esc="dc.partner_id.mobile or dc.partner_id.phone or ''"/>
+                                    </t>
+                                    <br/> -->
+                                    <!-- <strong>Contact Person : </strong> -->
+                                    <t t-if="consignee_contact">
+                                    <strong>
+                                        <span t-esc="consignee_contact.name or ''"/>
+                                        <t t-if="consignee_contact and (consignee_contact.mobile or consignee_contact.phone)">
+                                            , <span t-esc="consignee_contact.mobile or consignee_contact.phone"/>
+                                        </t>
+                                        <t t-else="">
+                                            <t t-if="dc.partner_id.mobile or dc.partner_id.phone">
+                                                , <span t-esc="dc.partner_id.mobile or dc.partner_id.phone"/>
+                                            </t>
+                                        </t>
+                                        </strong>
+                                    </t>
+                                    <br/>
+
+
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
